@@ -1,0 +1,7 @@
+vehicle_id,warehouse_id,capacity,cost_per_km,max_distance_per_day
+V1,W1,5,18,28
+V2,W1,4,22,22
+V3,W1,3,16,18
+V4,W2,5,17,25
+V5,W2,4,21,20
+V6,W2,3,15,18
