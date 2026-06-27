@@ -1,3 +1,4 @@
-.idea/
 *.exe
 outputs/
+.idea/
+src/.idea/
