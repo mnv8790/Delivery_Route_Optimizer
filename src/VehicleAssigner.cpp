@@ -1,7 +1,7 @@
 #include "VehicleAssigner.h"
+#include "HungarianSolver.h"
 
 #include <algorithm>
-#include <limits>
 #include <numeric>
 #include <random>
 #include <unordered_map>
@@ -86,13 +86,24 @@ static void updateFinalUtilization(std::vector<RouteRecord>& routes, const std::
     }
 }
 
+static void addUnassignedPackages(
+    AssignmentResult& result,
+    const std::vector<DeliveryTask>& tasks,
+    const std::vector<bool>& used
+) {
+    for (int i = 0; i < static_cast<int>(tasks.size()); i++) {
+        if (!used[i]) {
+            result.routes.push_back(makeUndelivered(result.strategy, tasks[i]));
+        }
+    }
+}
+
 AssignmentResult VehicleAssigner::randomAssignment(
     const std::vector<DeliveryTask>& tasks,
     const std::vector<Vehicle>& vehicles,
     RoutePlanner& planner
 ) {
-    AssignmentResult result;
-    result.strategy = "Random";
+    AssignmentResult result{"Random"};
 
     std::vector<VehicleState> states = makeVehicleStates(vehicles, tasks);
     std::vector<int> taskOrder(tasks.size());
@@ -105,21 +116,15 @@ AssignmentResult VehicleAssigner::randomAssignment(
     std::shuffle(taskOrder.begin(), taskOrder.end(), rng);
     std::shuffle(vehicleOrder.begin(), vehicleOrder.end(), rng);
 
-    // Baseline method: no smart choice, just a shuffled order.
     for (int taskIndex : taskOrder) {
         const DeliveryTask& task = tasks[taskIndex];
-
-        if (!task.reachable) {
-            result.routes.push_back(makeUndelivered(result.strategy, task));
-            continue;
-        }
-
         bool assigned = false;
 
         for (int vehicleIndex : vehicleOrder) {
             VehicleState& state = states[vehicleIndex];
 
-            if (state.vehicle.warehouse_id != task.warehouse_id ||
+            if (!task.reachable ||
+                state.vehicle.warehouse_id != task.warehouse_id ||
                 state.used >= state.vehicle.capacity) {
                 continue;
             }
@@ -182,11 +187,7 @@ AssignmentResult VehicleAssigner::nearestNeighbor(
         }
     }
 
-    for (int i = 0; i < static_cast<int>(tasks.size()); i++) {
-        if (!usedTask[i]) {
-            result.routes.push_back(makeUndelivered(result.strategy, tasks[i]));
-        }
-    }
+    addUnassignedPackages(result, tasks, usedTask);
 
     updateFinalUtilization(result.routes, states);
     return result;
@@ -253,184 +254,7 @@ AssignmentResult VehicleAssigner::optimizedGreedy(
         result.routes.push_back(assignToVehicle(result.strategy, states[bestVehicle], tasks[bestTask], bestLegDistance));
     }
 
-    for (int i = 0; i < static_cast<int>(tasks.size()); i++) {
-        if (!usedTask[i]) {
-            result.routes.push_back(makeUndelivered(result.strategy, tasks[i]));
-        }
-    }
-
-    updateFinalUtilization(result.routes, states);
-    return result;
-}
-
-AssignmentResult VehicleAssigner::hungarianAlgorithm(
-    const std::vector<DeliveryTask>& tasks,
-    const std::vector<Vehicle>& vehicles,
-    RoutePlanner& planner
-) {
-    AssignmentResult result;
-    result.strategy = "Hungarian Algorithm";
-
-    std::vector<VehicleState> states = makeVehicleStates(vehicles, tasks);
-    std::vector<int> taskIndexList;
-    std::vector<int> slotVehicleIndex;
-
-    for (int i = 0; i < static_cast<int>(tasks.size()); i++) {
-        if (tasks[i].reachable) {
-            taskIndexList.push_back(i);
-        }
-    }
-
-    for (int i = 0; i < static_cast<int>(states.size()); i++) {
-        for (int c = 0; c < states[i].vehicle.capacity; c++) {
-            slotVehicleIndex.push_back(i);
-        }
-    }
-
-    int rows = static_cast<int>(taskIndexList.size());
-    int cols = std::max(rows, static_cast<int>(slotVehicleIndex.size()));
-    const double BIG = 1e12;
-
-    if (rows == 0 || cols == 0) {
-        for (const DeliveryTask& task : tasks) {
-            result.routes.push_back(makeUndelivered(result.strategy, task));
-        }
-        return result;
-    }
-
-    std::vector<std::vector<double>> cost(rows + 1, std::vector<double>(cols + 1, BIG));
-
-    for (int i = 1; i <= rows; i++) {
-        const DeliveryTask& task = tasks[taskIndexList[i - 1]];
-
-        for (int j = 1; j <= static_cast<int>(slotVehicleIndex.size()); j++) {
-            VehicleState& state = states[slotVehicleIndex[j - 1]];
-
-            if (state.vehicle.warehouse_id != task.warehouse_id) {
-                continue;
-            }
-
-            double distance = planner.distanceBetween(task.warehouse_node, task.stop_node);
-            if (distance >= INF_DISTANCE / 2) {
-                continue;
-            }
-
-            // Hungarian cost is based on direct delivery cost from warehouse to stop.
-            cost[i][j] = (distance * state.vehicle.cost_per_km) - (task.priority * 2.0);
-        }
-    }
-
-    // Hungarian Algorithm for minimum cost assignment.
-    std::vector<double> u(rows + 1), v(cols + 1);
-    std::vector<int> p(cols + 1), way(cols + 1);
-
-    for (int i = 1; i <= rows; i++) {
-        p[0] = i;
-        int j0 = 0;
-        std::vector<double> minv(cols + 1, BIG);
-        std::vector<bool> used(cols + 1, false);
-
-        do {
-            used[j0] = true;
-            int i0 = p[j0];
-            double delta = BIG;
-            int j1 = 0;
-
-            for (int j = 1; j <= cols; j++) {
-                if (used[j]) {
-                    continue;
-                }
-
-                double current = cost[i0][j] - u[i0] - v[j];
-
-                if (current < minv[j]) {
-                    minv[j] = current;
-                    way[j] = j0;
-                }
-
-                if (minv[j] < delta) {
-                    delta = minv[j];
-                    j1 = j;
-                }
-            }
-
-            for (int j = 0; j <= cols; j++) {
-                if (used[j]) {
-                    u[p[j]] += delta;
-                    v[j] -= delta;
-                } else {
-                    minv[j] -= delta;
-                }
-            }
-
-            j0 = j1;
-        } while (p[j0] != 0);
-
-        do {
-            int j1 = way[j0];
-            p[j0] = p[j1];
-            j0 = j1;
-        } while (j0 != 0);
-    }
-
-    std::vector<int> assignedSlotForTask(rows + 1, 0);
-
-    for (int j = 1; j <= cols; j++) {
-        if (p[j] != 0) {
-            assignedSlotForTask[p[j]] = j;
-        }
-    }
-
-    std::vector<bool> delivered(tasks.size(), false);
-    std::vector<std::vector<int>> tasksForVehicle(states.size());
-
-    for (int i = 1; i <= rows; i++) {
-        int originalTaskIndex = taskIndexList[i - 1];
-        const DeliveryTask& task = tasks[originalTaskIndex];
-        int slot = assignedSlotForTask[i];
-
-        if (slot <= 0 || slot > static_cast<int>(slotVehicleIndex.size()) || cost[i][slot] >= BIG / 2) {
-            result.routes.push_back(makeUndelivered(result.strategy, task));
-            continue;
-        }
-
-        int vehicleIndex = slotVehicleIndex[slot - 1];
-        tasksForVehicle[vehicleIndex].push_back(originalTaskIndex);
-    }
-
-    for (int vehicleIndex = 0; vehicleIndex < static_cast<int>(states.size()); vehicleIndex++) {
-        std::vector<int>& assignedTasks = tasksForVehicle[vehicleIndex];
-
-        while (!assignedTasks.empty()) {
-            int bestPosition = -1;
-            double bestDistance = INF_DISTANCE;
-
-            for (int i = 0; i < static_cast<int>(assignedTasks.size()); i++) {
-                const DeliveryTask& task = tasks[assignedTasks[i]];
-                double distance = planner.distanceBetween(states[vehicleIndex].currentNode, task.stop_node);
-
-                if (distance < bestDistance) {
-                    bestDistance = distance;
-                    bestPosition = i;
-                }
-            }
-
-            if (bestPosition == -1 || bestDistance >= INF_DISTANCE / 2) {
-                break;
-            }
-
-            int taskIndex = assignedTasks[bestPosition];
-            result.routes.push_back(assignToVehicle(result.strategy, states[vehicleIndex], tasks[taskIndex], bestDistance));
-            delivered[taskIndex] = true;
-            assignedTasks.erase(assignedTasks.begin() + bestPosition);
-        }
-    }
-
-    for (int i = 0; i < static_cast<int>(tasks.size()); i++) {
-        if (!delivered[i]) {
-            result.routes.push_back(makeUndelivered(result.strategy, tasks[i]));
-        }
-    }
+    addUnassignedPackages(result, tasks, usedTask);
 
     updateFinalUtilization(result.routes, states);
     return result;
