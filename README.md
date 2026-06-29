@@ -1,57 +1,83 @@
 # Delivery Assignment Optimizer in C++
 
-Package delivery optimizer using shortest paths and assignment algorithms.
+A console-based C++20 self project that compares package-to-vehicle assignment methods using shortest paths and basic optimization algorithms.
 
-This is a console-based C++ project that models a small delivery network with warehouses, delivery stops, roads, vehicles, and packages. The program calculates shortest travel distances using Dijkstra's algorithm and compares different delivery assignment strategies.
+The project uses a small sample delivery network with warehouses, stops, roads, vehicles, and packages. It is not a full logistics system or a complete Vehicle Routing Problem solver. The main focus is assignment comparison: how different strategies affect delivery distance, cost, vehicle use, delayed deliveries, and runtime.
 
-The main motivation behind this project was to implement the Hungarian Algorithm after studying it in Operations Research and apply it to a practical assignment problem. Along with that, the project helped me strengthen DSA concepts such as graphs, priority queues, shortest paths, greedy approaches, and optimization-based decision making.
+## Why I Built This
 
+I built this project after studying the Hungarian Algorithm in Operations Research. Since I am from Mechanical Engineering, I wanted to connect OR concepts with C++ programming and data structures.
+
+This project helped me practice C++, graphs, Dijkstra's algorithm, file handling, STL containers, and assignment algorithms in one small but measurable project.
+
+## What The Project Does
+
+- Loads roads, warehouses, delivery stops, vehicles, and packages from CSV files
+- Stores the road network as a weighted graph using an adjacency list
+- Uses Dijkstra's algorithm to calculate shortest travel distances
+- Assigns packages to vehicles using different methods
+- Compares Random Assignment, Nearest Neighbor, Optimized Greedy, and Hungarian Algorithm
+- Prints a comparison summary in the console
+- Saves route and summary files inside the `outputs/` folder
+
+The dataset is intentionally small so the logic is easy to understand and explain in an interview.
 
 ## Features
 
-- Loads warehouses, delivery stops, roads, vehicles, and packages from CSV files
-- Stores the road network using an adjacency list
-- Uses Dijkstra's algorithm with a `priority_queue`
-- Generates delivery tasks from warehouse to stop
-- Compares Random Assignment, Nearest Neighbor, Optimized Greedy, and Hungarian Algorithm
-- Calculates delivery distance, cost, utilization, delayed deliveries, and runtime
-- Saves route-level and summary output files for review
-
-Optimized Greedy performs well on route distance, while the Hungarian Algorithm gives the lowest delivery cost in the sample dataset.
-
-## Sample Results
-
-| Strategy | Total Distance | Cost | Delivered | Undelivered | Avg Utilization | Delayed |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Random | 132.0 km | Rs. 2443 | 21 / 22 | 1 | 85.6% | 5 |
-| Nearest Neighbor | 96.0 km | Rs. 1765 | 21 / 22 | 1 | 83.3% | 2 |
-| Optimized Greedy | 94.0 km | Rs. 1749 | 21 / 22 | 1 | 87.5% | 2 |
-| Hungarian Algorithm | 97.0 km | Rs. 1695 | 21 / 22 | 1 | 87.5% | 2 |
-
-Compared to Random Assignment, the Hungarian Algorithm reduces distance by `26.5%`, cost by `30.6%`, and delays by `60.0%`.
+- C++20 console application
+- Graph representation using adjacency list
+- Dijkstra's shortest path algorithm with `priority_queue`
+- CSV input and output
+- Vehicle capacity based assignment
+- Runtime and delivery metric comparison
+- User input option to add one extra package before running the comparison
+- Hungarian Algorithm highlighted as the cost-focused optimized method
 
 ## Algorithms Used
 
-- Graph adjacency list for storing roads
-- Dijkstra's shortest path algorithm for travel distance
-- Random assignment baseline for comparison
-- Nearest-neighbor routing for a simple improvement
-- Optimized greedy assignment using capacity, cost, distance, priority, and delay penalty
-- Hungarian Algorithm using vehicle capacity slots as assignment choices
-- Basic metric calculation using STL containers
+### Dijkstra's Algorithm
 
-## Tech Stack
+The city road network is stored as a weighted graph. Dijkstra's algorithm is used to find the shortest distance between warehouses and delivery stops.
 
-- C++20
-- STL containers: `vector`, `unordered_map`, `priority_queue`
-- File handling using CSV input/output
-- Modular code with headers and source files
-- Console-based output
+### Random Assignment
+
+This is used as a baseline. Packages are assigned randomly to available vehicles, so the result gives a rough comparison point.
+
+### Nearest Neighbor
+
+This strategy chooses closer deliveries first. It is simple and usually better than random assignment, but it does not always give the best overall result.
+
+### Optimized Greedy
+
+This method uses distance, cost, capacity, package priority, and delay penalty while choosing assignments. It is still greedy, so it makes locally good choices instead of checking every possible assignment.
+
+### Hungarian Algorithm
+
+The Hungarian Algorithm is the main algorithm I wanted to implement in this project. It is used to solve an assignment cost table and find a lower-cost matching between packages and available vehicle capacity slots.
+
+In the sample dataset, the Hungarian Algorithm gives the lowest delivery cost. Optimized Greedy gives the shortest total distance, which is a useful reminder that "best" depends on the metric being compared.
+
+## Sample Results
+
+These results are from the included sample CSV files. Runtime can change slightly depending on the computer.
+
+| Strategy | Total Distance | Cost | Delivered | Undelivered | Avg Utilization | Delayed | Runtime |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Random Assignment | 132.0 km | Rs. 2443 | 21 / 22 | 1 | 85.6% | 5 | 0.180 ms |
+| Nearest Neighbor | 96.0 km | Rs. 1765 | 21 / 22 | 1 | 83.3% | 2 | 0.067 ms |
+| Optimized Greedy | 94.0 km | Rs. 1749 | 21 / 22 | 1 | 87.5% | 2 | 0.177 ms |
+| Hungarian Algorithm | 97.0 km | Rs. 1695 | 21 / 22 | 1 | 87.5% | 2 | 0.244 ms |
+
+Improvement over Random Assignment using Hungarian Algorithm:
+
+- Distance reduced by `26.5%`
+- Cost reduced by `30.6%`
+- Delayed deliveries reduced by `60.0%`
 
 ## Folder Structure
 
 ```text
-Last_Mile_Delivery_Route_Optimizer/
+Delivery-Assignment-Optimizer/
 |-- src/
 |   |-- main.cpp
 |   |-- ConsoleHelper.cpp
@@ -82,10 +108,11 @@ Last_Mile_Delivery_Route_Optimizer/
 |   |-- route_summary.csv
 |   `-- comparison_summary.txt
 |
+|-- build_and_run.bat
 `-- README.md
 ```
 
-## How To Compile
+## How To Compile And Run
 
 Run this from inside the project folder:
 
@@ -101,7 +128,11 @@ build_and_run.bat
 
 This builds the project and then runs it from the correct folder.
 
-## How To Run
+On Windows PowerShell:
+
+```bash
+.\delivery_optimizer.exe
+```
 
 On Linux or macOS:
 
@@ -109,13 +140,9 @@ On Linux or macOS:
 ./delivery_optimizer
 ```
 
-On Windows PowerShell:
+## Program Input
 
-```bash
-.\delivery_optimizer.exe
-```
-
-When the project starts, it asks for input:
+When the program starts, it asks:
 
 ```text
 1. Run comparison with CSV input
@@ -123,38 +150,7 @@ When the project starts, it asks for input:
 0. Exit
 ```
 
-Choose `1` to run the dataset from the CSV files. Choose `2` to enter one extra package from the keyboard and then run the comparison again.
-
-## Sample Output
-
-The exact runtime may change slightly on each run.
-
-```text
-Last-Mile Delivery Route Optimizer
-----------------------------------
-1. Run comparison with CSV input
-2. Change input by adding one package, then run comparison
-0. Exit
-Enter your choice: 1
-
-Shortest paths + vehicle assignment comparison
-Hungarian Algorithm is highlighted as the lowest-cost assignment method.
-Packages loaded: 22
-Vehicles loaded: 6
-
-Comparison Summary
-Strategy             Distance   Cost(Rs)   Avg/Package   Delivered   Undelivered   Util(%)   Delayed   Runtime(ms)
------------------------------------------------------------------------------------------------------------------
-Random                 132.0       2443          6.29          21             1      85.6         5        0.180
-Nearest Neighbor        96.0       1765          4.57          21             1      83.3         2        0.067
-Optimized Greedy        94.0       1749          4.48          21             1      87.5         2        0.177
-Hungarian Algorithm     97.0       1695          4.62          21             1      87.5         2        0.244
-
-Improvement over Random using Hungarian Algorithm
-Distance reduced by: 26.5%
-Cost reduced by: 30.6%
-Delays reduced by: 60.0%
-```
+Option `1` runs the comparison using the existing CSV files. Option `2` lets the user enter one extra package from the console and then runs the comparison again.
 
 ## Output Files
 
@@ -174,18 +170,19 @@ Random,V1,W1,S1,1,9.00,162.00,100.0,DELIVERED
 
 ## What I Learned
 
-- How to model a real-world transportation problem using graphs
-- How Dijkstra's algorithm is used for shortest path calculation
-- How different assignment strategies affect total cost and distance
-- How to organize a C++ project using multiple source and header files
-- How to read and write CSV files in C++
+- How to model a transportation-style problem using graphs
+- How Dijkstra's algorithm works with a priority queue
+- Why greedy methods are simple but not always globally optimal
+- How the Hungarian Algorithm can be used for cost-based assignment
 - How to compare algorithms using measurable metrics
+- How to organize a C++ project with multiple source and header files
 
 ## Limitations
 
+- This project is tested on a small sample dataset
 - Roads are treated as two-way roads
 - CSV parsing assumes clean input
-- Package size/weight is not modeled
+- Package size and weight are not deeply modeled
 - Vehicles do not return to the warehouse
 - Traffic, time windows, and driver shifts are not included
 - This is not a full vehicle routing problem solver
