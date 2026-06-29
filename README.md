@@ -4,6 +4,20 @@ A console-based C++20 self project that compares package-to-vehicle assignment m
 
 The project uses a small sample delivery network with warehouses, stops, roads, vehicles, and packages. It is not a full logistics system or a complete Vehicle Routing Problem solver. The main focus is assignment comparison: how different strategies affect delivery distance, cost, vehicle use, delayed deliveries, and runtime.
 
+## GitHub About
+
+Suggested repository description:
+
+```text
+Console-based C++ delivery assignment optimizer using Dijkstra shortest paths, greedy methods, and the Hungarian Algorithm.
+```
+
+Suggested topics:
+
+```text
+cpp, cpp20, dijkstra, hungarian-algorithm, greedy-algorithm, assignment-problem, graphs, csv, optimization
+```
+
 ## Why I Built This
 
 I built this project after studying the Hungarian Algorithm in Operations Research. Since I am from Mechanical Engineering, I wanted to connect OR concepts with C++ programming and data structures.
@@ -139,6 +153,22 @@ On Linux or macOS:
 ```bash
 ./delivery_optimizer
 ```
+
+## Quick Check Command
+
+For a simple local check after compiling:
+
+```bash
+printf "1\n\n" | ./delivery_optimizer
+```
+
+On Windows PowerShell:
+
+```powershell
+"1", "" | .\delivery_optimizer.exe
+```
+
+The GitHub Actions workflow in `.github/workflows/cpp-build.yml` uses the same idea: build the project and run it once with the sample CSV input.
 
 ## Program Input
 

@@ -1,0 +1,19 @@
+name: C++ Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build project
+        run: g++ -std=c++20 src/main.cpp src/ConsoleHelper.cpp src/Graph.cpp src/CsvReader.cpp src/RoutePlanner.cpp src/VehicleAssigner.cpp src/HungarianSolver.cpp src/Metrics.cpp -Iinclude -o delivery_optimizer
+
+      - name: Smoke run with sample CSV input
+        run: printf "1\n\n" | ./delivery_optimizer
